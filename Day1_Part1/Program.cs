@@ -16,30 +16,8 @@
 
 int GetNumberFromLine(string line)
 {
-	char firstDigit = '0';
-	char lastDigit = '0';
-
-	var reversedLine = line.Reverse();
-
-	//Find first digit
-	foreach(char c in line)
-	{
-		if(char.IsDigit(c))
-		{
-			firstDigit = c;
-			break;
-		}
-	}
-
-	//Find last digit
-	foreach (char c in reversedLine)
-	{
-		if (char.IsDigit(c))
-		{
-			lastDigit = c;
-			break;
-		}
-	}
+	char firstDigit = line.FirstOrDefault(c => char.IsDigit(c), '0');
+	char lastDigit = line.LastOrDefault(c => char.IsDigit(c), '0');
 
 	return int.Parse($"{firstDigit}{lastDigit}");
 }
