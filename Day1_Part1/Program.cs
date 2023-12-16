@@ -1,4 +1,6 @@
-﻿List<string> ReadLinesFromInput(string fileName)
+﻿using System.Diagnostics;
+
+List<string> ReadLinesFromInput(string fileName)
 {
 	using var reader = new StreamReader(fileName);
 	List<string> lines = [];
@@ -30,6 +32,10 @@ void Solve(List<string> lines)
 	Console.WriteLine(sum);
 }
 
+var sw = Stopwatch.StartNew();
 
 var lines = ReadLinesFromInput("input.txt");
 Solve(lines);
+
+sw.Stop();
+Console.WriteLine(sw.ElapsedMilliseconds);

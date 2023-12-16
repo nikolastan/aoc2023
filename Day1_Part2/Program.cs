@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 Dictionary<string, char> NumberMappingsToWords = new()
 {
@@ -39,6 +40,7 @@ int GetNumberFromLine(string line)
 	string pattern = "([0-9])";
 	var lineChunks = Regex.Split(line, pattern).Where(s => !string.IsNullOrWhiteSpace(s));
 
+	//Find first digit
 	foreach ( var lineChunk in lineChunks)
 	{
 		if(lineChunk.Length is 1 && char.IsDigit(lineChunk[0]))
@@ -56,6 +58,7 @@ int GetNumberFromLine(string line)
 		}
 	}
 
+	//Find last digit
 	foreach (var lineChunk in lineChunks.Reverse())
 	{
 		if (lineChunk.Length is 1 && char.IsDigit(lineChunk[0]))
@@ -124,8 +127,13 @@ void Solve(List<string> lines)
 }
 
 
+var sw = Stopwatch.StartNew();
+
 var lines = ReadLinesFromInput("input.txt");
 Solve(lines);
+
+sw.Stop();
+Console.WriteLine(sw.ElapsedMilliseconds);
 
 enum Ocurrence
 {
