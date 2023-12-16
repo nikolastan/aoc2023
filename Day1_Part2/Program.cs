@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-Dictionary<string, char> NumberMappingsToWords = new()
+Dictionary<string, char> DigitMappingsToWords = new()
 {
 	{ "zero", '0' },
 	{ "one" , '1' },
@@ -84,7 +84,7 @@ char TryParseSemantically(string lineChunk, Ocurrence ocurrence)
 {
 	var numberWords = new SortedDictionary<int, char>();
 
-	foreach (var numberWordPair in NumberMappingsToWords)
+	foreach (var numberWordPair in DigitMappingsToWords)
 	{
 		var indexes = AllIndexesOf(lineChunk, numberWordPair.Key);
 
