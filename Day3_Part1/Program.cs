@@ -43,18 +43,6 @@ char[] FormPaddingRow(int rowLength)
 	return paddingRow;
 }
 
-void PrintMatrix(char[][] matrix)
-{
-	foreach (var line in matrix)
-	{
-		foreach (var c in line)
-		{
-			Console.Write(c);
-		}
-		Console.Write("\n");
-	}
-}
-
 bool AnySymbolsIn(in char[][] matrix, int iPos, int jPos)
 {
 	for (int i = iPos - 1; i < iPos + 2; i++)
@@ -80,6 +68,7 @@ int GetSumOfAllParts(in char[][] engineMatrix)
 			var number = "";
 			var foundPart = false;
 
+			//Getting the whole number
 			while (char.IsNumber(engineMatrix[i][j]))
 			{
 
