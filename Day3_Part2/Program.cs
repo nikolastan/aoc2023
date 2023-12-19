@@ -55,7 +55,7 @@ IEnumerable<KeyValuePair<int, int>> GetPartNumbersAround(in char[][] matrix, int
 			{
 				var number = "";
 				var numberStartPos = j - 1;
-				while(matrix[i][numberStartPos] is not '.')
+				while(char.IsDigit(matrix[i][numberStartPos]))
 				{
 					numberStartPos--;
 				}
