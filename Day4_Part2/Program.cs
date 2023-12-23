@@ -49,7 +49,7 @@ int GetTotalNumberOfScratchcards(List<Card> cards)
 			var maxIndex = Math.Clamp(i + numOfWinningNumbers + 1, i, cards.Count);
 			var minIndex = Math.Clamp(i+1, i, cards.Count);
 
-			foreach (var card in cards[(minIndex)..(maxIndex)]) 
+			foreach (var card in cards[minIndex..maxIndex]) 
 			{
 				card.NumberOfCopies += cards[i].NumberOfCopies;
 			}
