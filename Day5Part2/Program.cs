@@ -14,6 +14,13 @@ Almanac ReadAlmanacFromInput(string filePath)
 	almanac.Seeds = seedsRegex.Match(line!).Groups[1].Value
 				.Split(' ', StringSplitOptions.RemoveEmptyEntries)
 				.Select(long.Parse)
+				.Select((value, index) => new {Index = index, Value = value})
+				.GroupBy(x => x.Index / 2)
+				.Select(g => new SeedRange()
+				{
+					RangeStart = g.ElementAt(0).Value,
+					RangeLength = g.ElementAt(1).Value
+				})
 				.ToList();
 
 	Map currentMap = null!;
@@ -49,34 +56,124 @@ Almanac ReadAlmanacFromInput(string filePath)
 	return almanac;
 }
 
-long PassSeedThroughMaps(in List<Map> maps, long seed)
+//TODO Fix diff method
+IEnumerable<SeedRange?> RangeDiff(long range1Start, long range1Length, long range2Start, long range2Length)
 {
-	var currentSeed = seed;
+	long range1End = range1Start + range1Length;
+	long range2End = range2Start + range2Length;
 
-	foreach (var map in maps)
+	//Situation where 2 ranges don't intersect
+	if (range1End < range2Start || range1Start > range2End)
 	{
-		MapRange? rangeContainingSeed = map.MapRanges
-			.Where(x => currentSeed >= x.SourceStart && currentSeed <= x.SourceStart + x.RangeLength)
-			.SingleOrDefault();
+		yield return new SeedRange() { RangeStart = range1Start, RangeLength = range1Length };
+	}
+	else
+	{
+		var points = CreateSortedPointsList(range1Start, range1End, range2Start, range2End);
 
-		if (rangeContainingSeed is not null)
+		if (points.First().Value is 1)
 		{
-			currentSeed = rangeContainingSeed.Value.DestinationStart + currentSeed - rangeContainingSeed.Value.SourceStart;
+			var rangeStart = points.First().Key; 
+			var rangeEnd = points[1].Key;
+
+			if (rangeStart == rangeEnd)
+				yield return null;
+
+			yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart };
+		}
+
+		if (points.Last().Value is 1)
+		{
+			var rangeStart = points[3].Key;
+			var rangeEnd = points.Last().Key;
+
+			if (rangeStart == rangeEnd)
+				yield return null;
+
+			yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart };
 		}
 	}
+}
 
-	return currentSeed;
+IEnumerable<SeedRange> RangeIntersect(long range1Start, long range1Length, long range2Start, long range2Length)
+{
+	long range1End = range1Start + range1Length;
+	long range2End = range2Start + range2Length;
+
+	//Situation where 2 ranges don't intersect
+	if (range1End < range2Start || range1Start > range2End)
+	{
+		yield break;
+	}
+	else
+	{
+		var points = CreateSortedPointsList(range1Start, range1End, range2Start, range2End);
+
+		var resultRangeStart = points[1].Key;
+		var resultRangeEnd = points[2].Key;
+
+		if (resultRangeStart == resultRangeEnd)
+			yield break;
+
+		yield return new SeedRange() { RangeLength = resultRangeEnd - resultRangeStart, RangeStart = resultRangeStart };
+	}
+}
+
+List<KeyValuePair<long, int>> CreateSortedPointsList(long range1Start, long range1End, long range2Start, long range2End)
+{
+	var points = new List<KeyValuePair<long, int>>()
+		{
+			KeyValuePair.Create(range1Start, 1),
+			KeyValuePair.Create(range2Start, 2),
+			KeyValuePair.Create(range1End, 1),
+			KeyValuePair.Create(range2End, 2)
+		};
+
+	points.Sort((x, y) => x.Key.CompareTo(y.Key));
+
+	return points;
+}
+
+long DetermineLowestDestination(Almanac almanac)
+{
+	var destinationRanges = almanac.Seeds;
+
+	foreach(var map in almanac.Maps)
+	{
+		var newDestinations = new List<SeedRange>();
+
+		foreach(var destination in destinationRanges) 
+		{
+			var mappedIntersects = map.MapRanges
+				.SelectMany(mapRange => RangeIntersect(destination.RangeStart, destination.RangeLength, mapRange.SourceStart, mapRange.RangeLength)
+					.Select(i => new SeedRange() { RangeStart = mapRange.DestinationStart, RangeLength = i.RangeLength}));
+
+			if(mappedIntersects.Any(x => x.RangeLength == destination.RangeLength))
+			{
+				newDestinations.Add(mappedIntersects.Single(x => x.RangeLength == destination.RangeLength));
+				continue;
+			}
+			else
+			{
+				//TODO Determine differences between destination and intersects (sources, not mapped), add them to newDestinations
+			}
+		}
+
+		destinationRanges = newDestinations;
+	}
+
+	destinationRanges.Sort((x, y) => x.RangeStart.CompareTo(y.RangeStart));
+
+	return destinationRanges.First().RangeStart;
 }
 
 void Solve()
 {
 	var sw = Stopwatch.StartNew();
 
-	var almanac = ReadAlmanacFromInput("input.txt");
+	var almanac = ReadAlmanacFromInput("test.txt");
 
-	var result = almanac.Seeds
-		.Select(seed => PassSeedThroughMaps(in almanac.Maps, seed))
-		.Min();
+	var result = DetermineLowestDestination(almanac);
 
 	sw.Stop();
 
@@ -99,11 +196,11 @@ struct MapRange
 
 struct SeedRange
 {
-	public long SourceStart;
+	public long RangeStart;
 	public long RangeLength;
 }
 
-struct Almanac
+class Almanac
 {
 	public List<Map> Maps = [];
 	public List<SeedRange> Seeds = null!;
