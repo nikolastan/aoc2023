@@ -56,11 +56,10 @@ Almanac ReadAlmanacFromInput(string filePath)
 	return almanac;
 }
 
-//TODO Fix diff method
-IEnumerable<SeedRange?> RangeDiff(long range1Start, long range1Length, long range2Start, long range2Length)
+IEnumerable<SeedRange> RangeDiff(long range1Start, long range1Length, long range2Start, long range2Length)
 {
-	long range1End = range1Start + range1Length;
-	long range2End = range2Start + range2Length;
+	long range1End = range1Start + range1Length - 1;
+	long range2End = range2Start + range2Length - 1;
 
 	//Situation where 2 ranges don't intersect
 	if (range1End < range2Start || range1Start > range2End)
@@ -77,28 +76,30 @@ IEnumerable<SeedRange?> RangeDiff(long range1Start, long range1Length, long rang
 			var rangeEnd = points[1].Key;
 
 			if (rangeStart == rangeEnd)
-				yield return null;
-
-			yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart };
+			{ }
+			else
+				yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart + 1 };
 		}
 
 		if (points.Last().Value is 1)
 		{
-			var rangeStart = points[3].Key;
+			var rangeStart = points[2].Key;
 			var rangeEnd = points.Last().Key;
 
 			if (rangeStart == rangeEnd)
-				yield return null;
-
-			yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart };
+			{ }
+			else
+				yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart + 1 };
 		}
 	}
+
+	yield break;
 }
 
 IEnumerable<SeedRange> RangeIntersect(long range1Start, long range1Length, long range2Start, long range2Length)
 {
-	long range1End = range1Start + range1Length;
-	long range2End = range2Start + range2Length;
+	long range1End = range1Start + range1Length - 1;
+	long range2End = range2Start + range2Length - 1;
 
 	//Situation where 2 ranges don't intersect
 	if (range1End < range2Start || range1Start > range2End)
@@ -107,15 +108,13 @@ IEnumerable<SeedRange> RangeIntersect(long range1Start, long range1Length, long 
 	}
 	else
 	{
-		var points = CreateSortedPointsList(range1Start, range1End, range2Start, range2End);
-
-		var resultRangeStart = points[1].Key;
-		var resultRangeEnd = points[2].Key;
+		var resultRangeStart = Math.Max(range1Start, range2Start);
+		var resultRangeEnd = Math.Min(range1End, range2End);
 
 		if (resultRangeStart == resultRangeEnd)
 			yield break;
 
-		yield return new SeedRange() { RangeLength = resultRangeEnd - resultRangeStart, RangeStart = resultRangeStart };
+		yield return new SeedRange() { RangeLength = resultRangeEnd - resultRangeStart + 1, RangeStart = resultRangeStart };
 	}
 }
 
@@ -146,7 +145,7 @@ long DetermineLowestDestination(Almanac almanac)
 		{
 			var mappedIntersects = map.MapRanges
 				.SelectMany(mapRange => RangeIntersect(destination.RangeStart, destination.RangeLength, mapRange.SourceStart, mapRange.RangeLength)
-					.Select(i => new SeedRange() { RangeStart = mapRange.DestinationStart, RangeLength = i.RangeLength}));
+					.Select(i => new SeedRange() { RangeStart = mapRange.DestinationStart + i.RangeStart - mapRange.SourceStart, RangeLength = i.RangeLength}));
 
 			if(mappedIntersects.Any(x => x.RangeLength == destination.RangeLength))
 			{
@@ -155,7 +154,26 @@ long DetermineLowestDestination(Almanac almanac)
 			}
 			else
 			{
-				//TODO Determine differences between destination and intersects (sources, not mapped), add them to newDestinations
+				var intersects = map.MapRanges
+					.SelectMany(mapRange => RangeIntersect(destination.RangeStart, destination.RangeLength, mapRange.SourceStart, mapRange.RangeLength));
+
+				if(!intersects.Any())
+				{
+					newDestinations.Add(destination);
+					continue;
+				}
+
+				var diffs = new List<SeedRange>() { destination };
+
+				foreach(var intersect in intersects)
+				{
+					diffs = diffs
+						.SelectMany(diff => RangeDiff(diff.RangeStart, diff.RangeLength, intersect.RangeStart, intersect.RangeLength))
+						.ToList();
+				}
+				
+				newDestinations.AddRange(diffs);
+				newDestinations.AddRange(mappedIntersects);
 			}
 		}
 
@@ -171,7 +189,7 @@ void Solve()
 {
 	var sw = Stopwatch.StartNew();
 
-	var almanac = ReadAlmanacFromInput("test.txt");
+	var almanac = ReadAlmanacFromInput("input.txt");
 
 	var result = DetermineLowestDestination(almanac);
 
