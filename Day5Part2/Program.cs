@@ -58,8 +58,8 @@ Almanac ReadAlmanacFromInput(string filePath)
 
 IEnumerable<SeedRange> RangeDiff(long range1Start, long range1Length, long range2Start, long range2Length)
 {
-	long range1End = range1Start + range1Length - 1;
-	long range2End = range2Start + range2Length - 1;
+	long range1End = range1Start + range1Length;
+	long range2End = range2Start + range2Length;
 
 	//Situation where 2 ranges don't intersect
 	if (range1End < range2Start || range1Start > range2End)
@@ -78,7 +78,7 @@ IEnumerable<SeedRange> RangeDiff(long range1Start, long range1Length, long range
 			if (rangeStart == rangeEnd)
 			{ }
 			else
-				yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart + 1 };
+				yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart };
 		}
 
 		if (points.Last().Value is 1)
@@ -89,7 +89,7 @@ IEnumerable<SeedRange> RangeDiff(long range1Start, long range1Length, long range
 			if (rangeStart == rangeEnd)
 			{ }
 			else
-				yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart + 1 };
+				yield return new SeedRange() { RangeLength = rangeEnd - rangeStart, RangeStart = rangeStart };
 		}
 	}
 
@@ -98,8 +98,8 @@ IEnumerable<SeedRange> RangeDiff(long range1Start, long range1Length, long range
 
 IEnumerable<SeedRange> RangeIntersect(long range1Start, long range1Length, long range2Start, long range2Length)
 {
-	long range1End = range1Start + range1Length - 1;
-	long range2End = range2Start + range2Length - 1;
+	long range1End = range1Start + range1Length;
+	long range2End = range2Start + range2Length;
 
 	//Situation where 2 ranges don't intersect
 	if (range1End < range2Start || range1Start > range2End)
@@ -114,7 +114,7 @@ IEnumerable<SeedRange> RangeIntersect(long range1Start, long range1Length, long 
 		if (resultRangeStart == resultRangeEnd)
 			yield break;
 
-		yield return new SeedRange() { RangeLength = resultRangeEnd - resultRangeStart + 1, RangeStart = resultRangeStart };
+		yield return new SeedRange() { RangeLength = resultRangeEnd - resultRangeStart, RangeStart = resultRangeStart };
 	}
 }
 
