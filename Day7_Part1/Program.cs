@@ -1,33 +1,5 @@
 ﻿using System.Diagnostics;
 
-List<Hand> ReadHandsFromInput(string filePath)
-{
-	using var reader = new StreamReader(filePath);
-
-	var hands = new List<Hand>();
-
-	while(!reader.EndOfStream)
-	{
-		var line = reader.ReadLine();
-
-		if(line is not null)
-		{
-			var handValues = line
-				.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-				.ToArray();
-
-			Hand hand = new()
-			{
-				Cards = [.. handValues[0].OrderBy(x => Array.IndexOf(Hand.CardOrder, x))],
-				Bid = int.Parse(handValues[1])
-			};
-
-			hands.Add(hand);
-		}
-	}
-
-	return hands;
-}
 void Solve()
 {
 	var sw = Stopwatch.StartNew();
@@ -49,6 +21,35 @@ void Solve()
 }
 
 Solve();
+
+List<Hand> ReadHandsFromInput(string filePath)
+{
+	using var reader = new StreamReader(filePath);
+
+	var hands = new List<Hand>();
+
+	while (!reader.EndOfStream)
+	{
+		var line = reader.ReadLine();
+
+		if (line is not null)
+		{
+			var handValues = line
+				.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+				.ToArray();
+
+			Hand hand = new()
+			{
+				Cards = [.. handValues[0]],
+				Bid = int.Parse(handValues[1])
+			};
+
+			hands.Add(hand);
+		}
+	}
+
+	return hands;
+}
 
 class Hand : IComparable<Hand>
 {
@@ -88,10 +89,10 @@ class Hand : IComparable<Hand>
 			.Select(group => new { Value = group.Key, Count = group.Count() })
 			.ToArray();
 
-		var strongestCard = uniqueCardsSorted[0];
-		var secondStrongestCard = uniqueCardsSorted[1] ?? null;
+		var numOfStrongestCard = uniqueCardsSorted[0].Count;
+		var numOfSecondStrongestCard = uniqueCardsSorted.Length > 1 ? uniqueCardsSorted[1].Count : 0;
 
-		HandType = (strongestCard.Count, secondStrongestCard?.Count) switch
+		HandType = (numOfStrongestCard, numOfSecondStrongestCard) switch
 		{
 			(5, _) => HandType.FiveOfAKind,
 			(4, 1) => HandType.FourOfAKind,
