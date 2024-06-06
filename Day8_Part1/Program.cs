@@ -1,8 +1,30 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 void Solve()
 {
+    var stopwatch = Stopwatch.StartNew();
+
     var docs = ReadDocumentsFromInput("input.txt");
+
+    var totalSteps = 0;
+    var instructionIndex = 0;
+
+    var currentNode = docs.NetworkStart;
+
+    while(currentNode.Name != "ZZZ")
+    {
+        currentNode = docs.Instructions[instructionIndex % docs.Instructions.Length] == 'R' 
+            ? currentNode.RightNext 
+            : currentNode.LeftNext;
+
+        instructionIndex++;
+        totalSteps++;
+    }
+
+    stopwatch.Stop();
+
+    Console.WriteLine($"Result: {totalSteps}, Time: {stopwatch.ElapsedMilliseconds}ms");
 }
 
 Solve();
@@ -43,7 +65,6 @@ void ParseLine(string line, Regex nodesRegex)
         }
 
         var leftNode = AllNodes.SingleOrDefault(node => node.Name == match.Groups[2].Value);
-        var rightNode = AllNodes.SingleOrDefault(node => node.Name == match.Groups[3].Value);
 
         if (leftNode is null)
         {
@@ -53,7 +74,9 @@ void ParseLine(string line, Regex nodesRegex)
 
         newNode.LeftNext = leftNode;
 
-        if (rightNode is null)
+		var rightNode = AllNodes.SingleOrDefault(node => node.Name == match.Groups[3].Value);
+
+		if (rightNode is null)
         {
             rightNode = new Node(match.Groups[3].Value);
             AllNodes.Add(rightNode);
@@ -70,14 +93,14 @@ void ParseLine(string line, Regex nodesRegex)
 class Node(string name)
 {
     public string Name { get; init; } = name;
-    public Node? LeftNext { get; set; } = null;
-    public Node? RightNext { get; set; } = null;
+    public Node LeftNext { get; set; } = null!;
+    public Node RightNext { get; set; } = null!;
 }
 
 class Documents(char[] instructions, Node networkStart)
 {
-    char[] Instructions { get; init; } = instructions;
-    Node NetworkStart { get; init; } = networkStart;
+    public char[] Instructions { get; init; } = instructions;
+    public Node NetworkStart { get; init; } = networkStart;
 }
 
 partial class Program
