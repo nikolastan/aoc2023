@@ -2,54 +2,31 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
+
 async Task Solve()
 {
 	var stopwatch = Stopwatch.StartNew();
 
 	ReadDocumentsFromInput("input.txt");
 
-	var ANodes = AllNodes.Where(node => node.Name.EndsWith('A'));
+	var ZNodes = AllNodes.Where(node => node.Name.EndsWith('Z'));
 
-	var AToZPaths = new ConcurrentBag<Path>();
-	var findAZPaths = ANodes
+	var ZToZPaths = new ConcurrentBag<Path>();
+	var findZZPaths = ZNodes
 		.Select(node => Task.Run(() =>
 		{
 			var shortestPathToZ = FindShortestPathToZ(node);
-			AToZPaths.Add(shortestPathToZ);
+			ZToZPaths.Add(shortestPathToZ);
 		}))
 		.ToList();
 
-	await Task.WhenAll(findAZPaths);
+	await Task.WhenAll(findZZPaths);
 
-	while(AToZPaths.Select(path => path.End).Any(end => !end.Name.EndsWith('Z'))
-		|| AToZPaths.Select(path => path.TotalSteps).Distinct().Skip(1).Any())
-	{
-		var currentMaxSteps = AToZPaths.Max(path => path.TotalSteps);
-
-		var findNextZInPaths = AToZPaths.Where(path => path.TotalSteps != currentMaxSteps)
-			.Select(path => Task.Run(() =>
-			{
-				var viableNextPath = ViablePaths
-					.SingleOrDefault(viablePath => viablePath.Start == path.End
-					&& viablePath.StartingInstructionIndex == path.CurrentInstructionIndex);
-
-				if(viableNextPath is null)
-				{
-					viableNextPath = FindShortestPathToZ(path.End, path.CurrentInstructionIndex);
-					ViablePaths.Add(viableNextPath);
-				}
-
-				path.End = viableNextPath.End;
-				path.CurrentInstructionIndex = viableNextPath.CurrentInstructionIndex;
-				path.TotalSteps += viableNextPath.TotalSteps;
-			}));
-
-		await Task.WhenAll(findNextZInPaths);
-	}
+	var result = CalculateLCM(ZToZPaths.Select(path => path.TotalSteps).ToList());
 
 	stopwatch.Stop();
 
-	Console.WriteLine($"Result: {AToZPaths.First().TotalSteps}, Time: {stopwatch.ElapsedMilliseconds}ms");
+	Console.WriteLine($"Result: {ZToZPaths.First().TotalSteps}, Time: {stopwatch.ElapsedMilliseconds}ms");
 }
 
 await Solve();
@@ -134,13 +111,42 @@ void ParseLine(string line, Regex nodesRegex)
 	}
 }
 
-class Path(Node start, Node end, int startingInstIndex, int currentInstIndex, long totalSteps)
+long CalculateLCM(List<int> numbers)
+{
+	var product = 1L;
+
+	foreach (var num in numbers)
+	{
+		product = FindLCM(product, num);
+	}
+
+	return product;
+}
+
+long FindLCM(long num1, int num2)
+{
+	var a = Math.Abs(num1);
+	var b = Math.Abs(num2);
+
+	a /= FindGCD(a, b);
+	return a * b;
+}
+
+long FindGCD(long a, long b)
+{
+	if(a== 0)
+		return b;
+
+	return FindGCD(b % a, a);
+}
+
+class Path(Node start, Node end, int startingInstIndex, int currentInstIndex, int totalSteps)
 {
 	public readonly Node Start = start;
 	public Node End = end;
 	public int StartingInstructionIndex = startingInstIndex;
 	public int CurrentInstructionIndex = currentInstIndex;
-	public long TotalSteps = totalSteps;
+	public int TotalSteps = totalSteps;
 }
 
 class Node(string name)
