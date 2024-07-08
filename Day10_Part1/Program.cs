@@ -2,7 +2,11 @@
 {
     var grid = ReadGridFromInput("test.txt");
 
+    var (i, j) = FindStartIndex(grid);
 
+    ScanSurroundings(ref grid, i, j, 0);
+
+    var message = string.Empty;
 }
 
 Solve();
@@ -45,22 +49,37 @@ Tile[][] ReadGridFromInput(string filePath)
     throw new InvalidOperationException("There is no Start tile in input. Check your input.");
 }
 
-void ScanSurroundings(ref Tile[][] grid, int i, int j, int currentDistanceFromStart)
+void ScanSurroundings(ref Tile[][] grid, int i, int j, int currentDistanceFromStart, Cardinal? direction = null)
 {
-    if (i == grid.Length || i < 0)
+    if (i == grid.Length || i < 0
+        || j == grid[i].Length || j < 0)
         return;
 
-    if (j == grid[j].Length || j < 0)
+    if (grid[i - 1][j].From == Cardinal.South || grid[i - 1][j].To == Cardinal.South)
+        ScanSurroundings(ref grid, i - 1, j, currentDistanceFromStart, Cardinal.North);
+
+    if (grid[i][j - 1].From == Cardinal.East || grid[i][j - 1].To == Cardinal.East)
+        ScanSurroundings(ref grid, i, j - 1, currentDistanceFromStart, Cardinal.West);
+
+    if (grid[i + 1][j].From == Cardinal.North || grid[i + 1][j].To == Cardinal.North)
+        ScanSurroundings(ref grid, i + 1, j, currentDistanceFromStart, Cardinal.South);
+
+    if (grid[i][j + 1].From == Cardinal.West || grid[i][j + 1].To == Cardinal.West)
+        ScanSurroundings(ref grid, i, j + 1, currentDistanceFromStart, Cardinal.East);
+
+    if (direction is null)
         return;
 
-    var currentTile = grid[j][i];
+    var currentTile = grid[i][j];
 
-    if (currentTile.Type != TileType.Start && currentTile.DistanceFromStart < currentDistanceFromStart)
+    if (currentTile.Type != TileType.Start && currentTile.DistanceFromStart > currentDistanceFromStart)
     {
         currentTile.DistanceFromStart = ++currentDistanceFromStart;
     }
-
-
+    else
+    {
+        return;
+    }
 }
 
 Tile ParseTile(char tileChar)
