@@ -4,7 +4,7 @@ void Solve()
 {
     var sw = Stopwatch.StartNew();
 
-    var grid = ReadGridFromInput("test.txt");
+    var grid = ReadGridFromInput("input.txt");
 
     var (i, j) = FindStartIndex(grid);
 
@@ -58,31 +58,51 @@ Tile[][] ReadGridFromInput(string filePath)
 
 void ScanSurroundings(ref Tile[][] grid, int i, int j, int currentDistanceFromStart)
 {
-    if (i == grid.Length || i < 0
-        || j == grid[i].Length || j < 0)
-        return;
-
-    if (grid[i][j].Visited)
-        return;
-
-    grid[i][j].Visited = true;
-
-    if (grid[i][j].Type is not TileType.Start && (grid[i][j].DistanceFromStart is null || grid[i][j].DistanceFromStart < currentDistanceFromStart))
+    var changed = false;
+    do
     {
-        grid[i][j].DistanceFromStart = ++currentDistanceFromStart;
+        changed = false;
+
+        grid[i][j].Visited = true;
+
+        if (grid[i][j].Type is not TileType.Start && (grid[i][j].DistanceFromStart is null || grid[i][j].DistanceFromStart < currentDistanceFromStart))
+        {
+            grid[i][j].DistanceFromStart = ++currentDistanceFromStart;
+        }
+
+        if (i > 0 && (grid[i - 1][j].From == Cardinal.South || grid[i - 1][j].To == Cardinal.South)
+            && !grid[i - 1][j].Visited
+            && (grid[i][j].From == Cardinal.North || grid[i][j].To == Cardinal.North || grid[i][j].Type == TileType.Start))
+        {
+            i--;
+            changed = true;
+        }
+        else
+        if (j > 0 && (grid[i][j - 1].From == Cardinal.East || grid[i][j - 1].To == Cardinal.East)
+            && !grid[i][j - 1].Visited
+            && (grid[i][j].From == Cardinal.West || grid[i][j].To == Cardinal.West || grid[i][j].Type == TileType.Start))
+        {
+            j--;
+			changed = true;
+		}
+        else
+        if (i < grid.Length - 1 && (grid[i + 1][j].From == Cardinal.North || grid[i + 1][j].To == Cardinal.North)
+            && !grid[i + 1][j].Visited
+            && (grid[i][j].From == Cardinal.South || grid[i][j].To == Cardinal.South || grid[i][j].Type == TileType.Start))
+        {
+			i++;
+			changed = true;
+		}
+        else
+        if (j < grid.Length - 1 && (grid[i][j + 1].From == Cardinal.West || grid[i][j + 1].To == Cardinal.West)
+            && !grid[i][j + 1].Visited
+            && (grid[i][j].From == Cardinal.East || grid[i][j].To == Cardinal.East || grid[i][j].Type == TileType.Start))
+        {
+            j++;
+			changed = true;
+		} 
     }
-
-    if (i > 0 && (grid[i - 1][j].From == Cardinal.South || grid[i - 1][j].To == Cardinal.South))
-        ScanSurroundings(ref grid, i - 1, j, currentDistanceFromStart);
-
-    if (j > 0 && (grid[i][j - 1].From == Cardinal.East || grid[i][j - 1].To == Cardinal.East))
-        ScanSurroundings(ref grid, i, j - 1, currentDistanceFromStart);
-
-    if (i < grid.Length - 1 && (grid[i + 1][j].From == Cardinal.North || grid[i + 1][j].To == Cardinal.North))
-        ScanSurroundings(ref grid, i + 1, j, currentDistanceFromStart);
-
-    if (j < grid.Length - 1 && (grid[i][j + 1].From == Cardinal.West || grid[i][j + 1].To == Cardinal.West))
-        ScanSurroundings(ref grid, i, j + 1, currentDistanceFromStart);
+    while (changed);
 }
 
 Tile ParseTile(char tileChar)
