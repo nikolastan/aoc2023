@@ -59,6 +59,7 @@ Tile[][] ReadGridFromInput(string filePath)
 void ScanSurroundings(ref Tile[][] grid, int i, int j, int currentDistanceFromStart)
 {
     bool changed;
+    Cardinal currentLoopDirection;
 
     do
     {
@@ -66,9 +67,9 @@ void ScanSurroundings(ref Tile[][] grid, int i, int j, int currentDistanceFromSt
 
         grid[i][j].Visited = true;
 
-        if (grid[i][j].Type is not TileType.Start && (grid[i][j].DistanceFromStart is null || grid[i][j].DistanceFromStart < currentDistanceFromStart))
+        if (grid[i][j].EligibleForEnclosure)
         {
-            grid[i][j].DistanceFromStart = ++currentDistanceFromStart;
+            grid[i][j].EligibleForEnclosure = false;
         }
 
         if (i > 0
@@ -77,6 +78,7 @@ void ScanSurroundings(ref Tile[][] grid, int i, int j, int currentDistanceFromSt
         {
             i--;
             changed = true;
+            currentLoopDirection = Cardinal.North;
         }
         else if (j > 0
             && ArePipesConnected(grid[i][j - 1], grid[i][j], Cardinal.East, Cardinal.West)
@@ -84,6 +86,7 @@ void ScanSurroundings(ref Tile[][] grid, int i, int j, int currentDistanceFromSt
         {
             j--;
             changed = true;
+            currentLoopDirection = Cardinal.West;
         }
         else if (i < grid.Length - 1
             && ArePipesConnected(grid[i + 1][j], grid[i][j], Cardinal.North, Cardinal.South)
@@ -91,6 +94,7 @@ void ScanSurroundings(ref Tile[][] grid, int i, int j, int currentDistanceFromSt
         {
             i++;
             changed = true;
+            currentLoopDirection = Cardinal.South;
         }
         else if (j < grid.Length - 1
             && ArePipesConnected(grid[i][j + 1], grid[i][j], Cardinal.West, Cardinal.East)
@@ -98,9 +102,15 @@ void ScanSurroundings(ref Tile[][] grid, int i, int j, int currentDistanceFromSt
         {
             j++;
             changed = true;
+            currentLoopDirection = Cardinal.East;
         }
     }
     while (changed);
+}
+
+void MarkForEnclosure(ref Tile[][] grid, int i, int j, Cardinal currentLoopDirection)
+{
+
 }
 
 bool ArePipesConnected(Tile tile1, Tile tile2, Cardinal from, Cardinal to)
@@ -129,8 +139,8 @@ struct Tile(TileType type, Cardinal? from = null, Cardinal? to = null)
     public TileType Type = type;
     public Cardinal? From = from;
     public Cardinal? To = to;
-    public int? DistanceFromStart = null;
     public bool Visited = false;
+    public bool EligibleForEnclosure = false;
 }
 
 enum TileType
