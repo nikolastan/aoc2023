@@ -4,15 +4,13 @@ void Solve()
 {
     var sw = Stopwatch.StartNew();
 
-    var grid = ReadGridFromInput("input.txt");
+    var grid = ReadGridFromInput("test.txt");
 
     var (i, j) = FindStartIndex(grid);
 
-    ScanSurroundings(ref grid, i, j, 0);
+    TraceLoop(ref grid, i, j);
 
-
-
-    var result = 0;
+    var result = CountPointsInsideLoop(ref grid);
 
     sw.Stop();
     Console.WriteLine($"Result: {result}, Time: {sw.ElapsedMilliseconds}ms");
@@ -58,19 +56,15 @@ Tile[][] ReadGridFromInput(string filePath)
     throw new InvalidOperationException("There is no Start tile in input. Check your input.");
 }
 
-void ScanSurroundings(ref Tile[][] grid, int i, int j)
+void TraceLoop(ref Tile[][] grid, int i, int j)
 {
     bool changed;
+
     do
     {
         changed = false;
 
         grid[i][j].PartOfLoop = true;
-
-        if (grid[i][j].EligibleForEnclosure)
-        {
-            grid[i][j].EligibleForEnclosure = false;
-        }
 
         if (i > 0
             && ArePipesConnected(grid[i - 1][j], grid[i][j], Cardinal.South, Cardinal.North)
@@ -78,7 +72,6 @@ void ScanSurroundings(ref Tile[][] grid, int i, int j)
         {
             i--;
             changed = true;
-            MarkAdjacentForEnclosure(ref grid, i, j);
         }
         else if (j > 0
             && ArePipesConnected(grid[i][j - 1], grid[i][j], Cardinal.East, Cardinal.West)
@@ -93,8 +86,7 @@ void ScanSurroundings(ref Tile[][] grid, int i, int j)
         {
             i++;
             changed = true;
-			MarkAdjacentForEnclosure(ref grid, i, j);
-		}
+        }
         else if (j < grid.Length - 1
             && ArePipesConnected(grid[i][j + 1], grid[i][j], Cardinal.West, Cardinal.East)
             && !grid[i][j + 1].PartOfLoop)
@@ -106,47 +98,61 @@ void ScanSurroundings(ref Tile[][] grid, int i, int j)
     while (changed);
 }
 
-void MarkAdjacentForEnclosure(ref Tile[][] grid, int i, int j)
+int CountPointsInsideLoop(ref Tile[][] grid)
 {
-    if(j < grid.Length - 1 && !grid[i][j + 1].PartOfLoop)
+    var count = 0;
+
+    for (int i = 0; i < grid.Length; i++)
+        for (int j = 0; j < grid[i].Length; j++)
+        {
+            if (!grid[i][j].PartOfLoop && IsInsideLoop(ref grid, i, j))
+                count++;
+        }
+
+    return count;
+}
+
+bool IsInsideLoop(ref Tile[][] grid, int i, int j)
+{
+    var edgeCount = 0;
+    (int, int) lastEdgePoint = (0, 0);
+    var isCurrentlyOnEdge = false;
+
+    while (j < grid[0].Length)
     {
-        grid[i][j + 1].EligibleForEnclosure = true;
+        var currentTile = grid[i][j];
+        if (currentTile.PartOfLoop)
+        {
+            if (!isCurrentlyOnEdge)
+            {
+                edgeCount++;
+                isCurrentlyOnEdge = true;
+            }
+
+            lastEdgePoint = (i, j);
+        }
+        else if (isCurrentlyOnEdge)
+        {
+            isCurrentlyOnEdge = false;
+            if (lastEdgePoint.Item1 > 0 && grid[lastEdgePoint.Item1 - 1][lastEdgePoint.Item2].PartOfLoop)
+                edgeCount++;
+            else if (lastEdgePoint.Item1 < grid.Length - 1 && grid[lastEdgePoint.Item1 + 1][lastEdgePoint.Item2].PartOfLoop)
+                edgeCount++;
+        }
+
+        j++;
     }
 
-    if(j > 0 && !grid[i][j - 1].PartOfLoop)
-    {
-        grid[i][j - 1].EligibleForEnclosure = true;
-    }
+    if (edgeCount % 2 is 1)
+        return true;
+
+    return false;
+
 }
 
 bool ArePipesConnected(Tile tile1, Tile tile2, Cardinal from, Cardinal to)
 {
     return (tile1.From == from || tile1.To == from) && (tile2.From == to || tile2.To == to || tile2.Type == TileType.Start);
-}
-
-int CountEnclosedTiles(ref Tile[][] grid)
-{
-    var eligibleForEnclosure = grid
-        .SelectMany((row, rowIndex) => row.Select((_, colIndex) => new { rowIndex, colIndex }))
-        .ToList();
-
-	var totalCount = 0;
-
-    while(eligibleForEnclosure.Count > 0)
-    {
-        var currentTile = eligibleForEnclosure.First();
-        eligibleForEnclosure.Remove(currentTile);
-
-        var rowCount = 1;
-
-        //Cannot work like this, we must check for inner & outer border of loop.
-    }
-
-}
-
-bool IsEnclosed(ref Tile[][] grid, int i, int j)
-{
-
 }
 
 Tile ParseTile(char tileChar)
@@ -171,7 +177,6 @@ struct Tile(TileType type, Cardinal? from = null, Cardinal? to = null)
     public Cardinal? From = from;
     public Cardinal? To = to;
     public bool PartOfLoop = false;
-    public bool EligibleForEnclosure = false;
 }
 
 enum TileType
