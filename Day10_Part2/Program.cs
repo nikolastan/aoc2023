@@ -67,28 +67,28 @@ void TraceLoop(ref Tile[][] grid, int i, int j)
         grid[i][j].PartOfLoop = true;
 
         if (i > 0
-            && ArePipesConnected(grid[i - 1][j], grid[i][j], Cardinal.South, Cardinal.North)
+            && ArePipesConnectedBySides(grid[i - 1][j], grid[i][j], Cardinal.South, Cardinal.North)
             && !grid[i - 1][j].PartOfLoop)
         {
             i--;
             changed = true;
         }
         else if (j > 0
-            && ArePipesConnected(grid[i][j - 1], grid[i][j], Cardinal.East, Cardinal.West)
+            && ArePipesConnectedBySides(grid[i][j - 1], grid[i][j], Cardinal.East, Cardinal.West)
             && !grid[i][j - 1].PartOfLoop)
         {
             j--;
             changed = true;
         }
         else if (i < grid.Length - 1
-            && ArePipesConnected(grid[i + 1][j], grid[i][j], Cardinal.North, Cardinal.South)
+            && ArePipesConnectedBySides(grid[i + 1][j], grid[i][j], Cardinal.North, Cardinal.South)
             && !grid[i + 1][j].PartOfLoop)
         {
             i++;
             changed = true;
         }
-        else if (j < grid.Length - 1
-            && ArePipesConnected(grid[i][j + 1], grid[i][j], Cardinal.West, Cardinal.East)
+        else if (j < grid[0].Length - 1
+            && ArePipesConnectedBySides(grid[i][j + 1], grid[i][j], Cardinal.West, Cardinal.East)
             && !grid[i][j + 1].PartOfLoop)
         {
             j++;
@@ -114,8 +114,9 @@ int CountPointsInsideLoop(ref Tile[][] grid)
 
 bool IsInsideLoop(ref Tile[][] grid, int i, int j)
 {
-    var edgeCount = 0;
-    (int, int) lastEdgePoint = (0, 0);
+    var startJ = j;
+    var totalEdgeCount = 0;
+    var prevColIndex = -1;
     var isCurrentlyOnEdge = false;
 
     while (j < grid[0].Length)
@@ -125,34 +126,55 @@ bool IsInsideLoop(ref Tile[][] grid, int i, int j)
         {
             if (!isCurrentlyOnEdge)
             {
-                edgeCount++;
+                totalEdgeCount++;
                 isCurrentlyOnEdge = true;
             }
 
-            lastEdgePoint = (i, j);
+            prevColIndex = j;
+
+
+            if (j < grid[0].Length - 1 && !ArePipesConnected(currentTile, grid[i][j + 1]))
+            {
+                if (i > 0
+                && ArePipesConnected(grid[i][prevColIndex], grid[i - 1][prevColIndex])
+                && grid[i - 1][prevColIndex].PartOfLoop)
+                {
+                    totalEdgeCount++;
+                    isCurrentlyOnEdge = false;
+                }
+                else if (i < grid.Length - 1
+                    && ArePipesConnected(grid[i][prevColIndex], grid[i + 1][prevColIndex])
+                    && grid[i + 1][prevColIndex].PartOfLoop)
+                {
+                    totalEdgeCount++;
+                    isCurrentlyOnEdge = false;
+                }
+            }
         }
-        else if (isCurrentlyOnEdge)
+        else
         {
             isCurrentlyOnEdge = false;
-            if (lastEdgePoint.Item1 > 0 && grid[lastEdgePoint.Item1 - 1][lastEdgePoint.Item2].PartOfLoop)
-                edgeCount++;
-            else if (lastEdgePoint.Item1 < grid.Length - 1 && grid[lastEdgePoint.Item1 + 1][lastEdgePoint.Item2].PartOfLoop)
-                edgeCount++;
         }
 
         j++;
     }
 
-    if (edgeCount % 2 is 1)
+    if (totalEdgeCount % 2 is 1)
         return true;
 
     return false;
 
 }
 
-bool ArePipesConnected(Tile tile1, Tile tile2, Cardinal from, Cardinal to)
+bool ArePipesConnectedBySides(Tile tile1, Tile tile2, Cardinal from, Cardinal to)
 {
     return (tile1.From == from || tile1.To == from) && (tile2.From == to || tile2.To == to || tile2.Type == TileType.Start);
+}
+
+bool ArePipesConnected(Tile tile1, Tile tile2)
+{
+    return ArePipesConnectedBySides(tile1, tile2, Cardinal.North, Cardinal.South)
+        || ArePipesConnectedBySides(tile1, tile2, Cardinal.East, Cardinal.West);
 }
 
 Tile ParseTile(char tileChar)
