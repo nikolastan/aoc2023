@@ -139,20 +139,19 @@ bool IsInsideLoop(int i, int j)
                 && prevColIndex != -1
                 && currentEdgeLenght > 0)
                 {
-                    if (i > 0
+                    if ((i > 0
                     && ArePipesConnected(Grid[i][prevColIndex], Grid[i - 1][prevColIndex], Cardinal.North)
                     && Grid[i - 1][prevColIndex].PartOfLoop
                     && ArePipesConnected(currentTile, Grid[i - 1][j], Cardinal.North)
                     && Grid[i - 1][j].PartOfLoop)
-                    {
-                        totalEdgeCount++;
-                        isCurrentlyOnEdge = false;
-                    }
-                    else if (i < Grid.Length - 1
+
+                    ||
+
+                    (i < Grid.Length - 1
                         && ArePipesConnected(Grid[i][prevColIndex], Grid[i + 1][prevColIndex], Cardinal.South)
                         && Grid[i + 1][prevColIndex].PartOfLoop
                         && ArePipesConnected(currentTile, Grid[i + 1][j], Cardinal.South)
-                        && Grid[i + 1][j].PartOfLoop)
+                        && Grid[i + 1][j].PartOfLoop))
                     {
                         totalEdgeCount++;
                         isCurrentlyOnEdge = false;
