@@ -4,17 +4,17 @@ void SolvePart1()
 {
     var sw = Stopwatch.StartNew();
 
-    var records = ReadRecords("test.txt");
+    var records = ReadRecords("input.txt");
 
-    var result = 0;
+    //var result = 0;
 
-    foreach (var item in records)
-    {
-        result += CalculateTotalArrangements(item.Conditions, item.GroupSizes);
-    }
+    //foreach (var item in records)
+    //{
+    //    result += CalculateTotalArrangements(item.Conditions, item.GroupSizes);
+    //}
 
-    //var result = records.Select(x => CalculateTotalArrangements(x.Conditions, x.GroupSizes))
-    //    .Sum();
+    var result = records.Select(x => CalculateTotalArrangements(x.Conditions, x.GroupSizes))
+        .Sum();
 
     sw.Stop();
 
@@ -49,7 +49,9 @@ int CalculateTotalArrangements(string conditions, List<int> groupSizes)
     if (groupSizes.Count is 0)
         return 1;
 
-    if (conditions.All(x => x is not '.') && conditions.Length == groupSizes.First())
+    if (conditions.All(x => x is not '.') 
+        && conditions.Length == groupSizes.First()
+        && groupSizes.Count == 1)
         return 1;
 
     if (conditions.Count(x => x is not '.') < groupSizes.Sum())
@@ -62,15 +64,10 @@ int CalculateTotalArrangements(string conditions, List<int> groupSizes)
         && conditions[groupSizes.First()] is not '#')
     {
         totalArrangements += CalculateTotalArrangements(conditions[(groupSizes.First() + 1)..], groupSizes[1..]);
-        for (int i = 1; i <= groupSizes.First(); i++)
-        {
-            totalArrangements += CalculateTotalArrangements(conditions[i..], groupSizes);
-        }
-    }
-    else
-    {
+	}
+
+    if (conditions[0] is not '#')
         totalArrangements += CalculateTotalArrangements(conditions[1..], groupSizes);
-    }
 
     return totalArrangements;
 }
