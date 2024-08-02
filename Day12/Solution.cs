@@ -130,9 +130,8 @@ public class Solution
         if (conditions.Count(x => x is not '.') < groupSizes.Sum())
             return 0;
 
-        var totalArrangements = 0L;
 
-        if (memo.TryGetValue(GetMemoKey(conditions, groupSizes), out totalArrangements))
+        if (memo.TryGetValue(GetMemoKey(conditions, groupSizes), out long totalArrangements))
             return totalArrangements;
 
         if (conditions[..groupSizes.First()].All(x => x is not '.')
