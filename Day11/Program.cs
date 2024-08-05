@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Utility;
 
 void SolvePart1()
 {
@@ -89,7 +90,7 @@ char[][] ReadImage(string filePath)
 
 char[][] ExpandColumns(char[][] data)
 {
-    var transposedImage = TransposeMatrix(data);
+    var transposedImage = Matrix.TransposeMatrix(data);
 
     var expandedImage = new List<char[]>();
 
@@ -101,25 +102,8 @@ char[][] ExpandColumns(char[][] data)
             expandedImage.Add(row);
     }
 
-    return TransposeMatrix([.. expandedImage]);
+    return Matrix.TransposeMatrix([.. expandedImage]);
 
-}
-
-T[][] TransposeMatrix<T>(T[][] matrix)
-{
-    var transposedMatrix = new T[matrix[0].Length][];
-
-    for (int i = 0; i < matrix[0].Length; i++)
-        transposedMatrix[i] = new T[matrix.Length];
-
-    for (int i = 0; i < matrix.Length; i++)
-    {
-        for (int j = 0; j < matrix[0].Length; j++)
-            transposedMatrix[j][i] = matrix[i][j];
-    }
-
-
-    return transposedMatrix;
 }
 
 IEnumerable<Galaxy> FindGalaxies(char[][] image)
@@ -178,7 +162,7 @@ Tile[][] ReadImageWithXMultipliers(string filePath)
 
 Tile[][] ExpandColumnsWithYMultipliers(Tile[][] data)
 {
-    var transposedImage = TransposeMatrix(data);
+    var transposedImage = Matrix.TransposeMatrix(data);
 
     var expandedImage = new List<Tile[]>();
 
@@ -201,7 +185,7 @@ Tile[][] ExpandColumnsWithYMultipliers(Tile[][] data)
         expandedImage.Add(newRow);
     }
 
-    return TransposeMatrix([.. expandedImage]);
+    return Matrix.TransposeMatrix([.. expandedImage]);
 }
 struct Galaxy((long, long) coordinates)
 {
