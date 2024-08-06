@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-
+using static Utility.Enums;
 void Solve()
 {
     var sw = Stopwatch.StartNew();
@@ -138,12 +138,4 @@ enum TileType
     Pipe,
     Ground,
     Start
-}
-
-enum Cardinal
-{
-    North,
-    South,
-    East,
-    West
 }

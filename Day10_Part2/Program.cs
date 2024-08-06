@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using static Utility.Enums;
 
 void Solve()
 {
@@ -226,14 +227,6 @@ enum TileType
     Pipe,
     Ground,
     Start
-}
-
-enum Cardinal
-{
-    North,
-    South,
-    East,
-    West
 }
 
 partial class Program
