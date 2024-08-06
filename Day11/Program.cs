@@ -90,7 +90,7 @@ char[][] ReadImage(string filePath)
 
 char[][] ExpandColumns(char[][] data)
 {
-    var transposedImage = Matrix.TransposeMatrix(data);
+    var transposedImage = Matrix.Transpose(data);
 
     var expandedImage = new List<char[]>();
 
@@ -102,7 +102,7 @@ char[][] ExpandColumns(char[][] data)
             expandedImage.Add(row);
     }
 
-    return Matrix.TransposeMatrix([.. expandedImage]);
+    return Matrix.Transpose([.. expandedImage]);
 
 }
 
@@ -162,7 +162,7 @@ Tile[][] ReadImageWithXMultipliers(string filePath)
 
 Tile[][] ExpandColumnsWithYMultipliers(Tile[][] data)
 {
-    var transposedImage = Matrix.TransposeMatrix(data);
+    var transposedImage = Matrix.Transpose(data);
 
     var expandedImage = new List<Tile[]>();
 
@@ -185,7 +185,7 @@ Tile[][] ExpandColumnsWithYMultipliers(Tile[][] data)
         expandedImage.Add(newRow);
     }
 
-    return Matrix.TransposeMatrix([.. expandedImage]);
+    return Matrix.Transpose([.. expandedImage]);
 }
 struct Galaxy((long, long) coordinates)
 {

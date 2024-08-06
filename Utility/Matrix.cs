@@ -2,7 +2,7 @@
 
 public static class Matrix
 {
-    public static T[][] TransposeMatrix<T>(T[][] matrix)
+    public static T[][] Transpose<T>(T[][] matrix)
     {
         var transposedMatrix = new T[matrix[0].Length][];
 
