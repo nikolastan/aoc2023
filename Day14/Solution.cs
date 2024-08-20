@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using System.Diagnostics;
-using Utility;
+using System.Security.Cryptography;
+using System.Text;
 using static Utility.Enums;
 
 namespace Day14;
@@ -30,7 +31,7 @@ public class Solution
     [Test]
     public void Part2_Input()
     {
-        var result = SolvePart1(@"Inputs/input.txt");
+        var result = SolvePart2(@"Inputs/input.txt");
     }
 
     int SolvePart1(string inputPath)
@@ -39,22 +40,18 @@ public class Solution
 
         var grid = File.ReadLines(inputPath)
             .Select(s => s.ToCharArray())
-            .ToArray();
+			.Select(s => s.Select(c => new Tile(c)).ToArray())
+			.ToArray();
 
-        var transposedGrid = Matrix.Transpose(grid);
+        Tilt(ref grid, Cardinal.North);
 
-        var tiltedGrid = Matrix.Transpose(transposedGrid
-            .Select(row => new string(row).Split('#'))
-            .Select(rowParts => rowParts.Select(rowPart => rowPart.OrderDescending().ToArray()))
-            .Select(sortedRowParts => sortedRowParts.Aggregate((current, next) => [.. current, '#', .. next]))
-            .ToArray());
-
-        var result = tiltedGrid
+        var result = grid //tiltedGrid
             .Reverse()
             .Select((row, index) => new { row, index })
-            .Sum(x => x.row.Count(c => c == 'O') * (x.index + 1));
+            .Sum(x => x.row.Count(c => c.Type is TileType.Movable) * (x.index + 1));
 
-        sw.Stop();
+
+		sw.Stop();
 
         Console.WriteLine($"Result: {result}, Time elapsed: {sw.ElapsedMilliseconds}ms");
 
@@ -62,61 +59,201 @@ public class Solution
     }
 
     int SolvePart2(string inputPath)
+	{
+		var sw = Stopwatch.StartNew();
+
+		var totalCycles = 1_000_000_000;
+
+		var grid = File.ReadLines(inputPath)
+			.Select(s => s.ToCharArray())
+			.Select(s => s.Select(c => new Tile(c)).ToArray())
+			.ToArray();
+
+		var memo = new Dictionary<string, int>();
+
+		bool foundLoop = false;
+
+		for (int i = 0; i < totalCycles; i++)
+		{
+			Tilt(ref grid, Cardinal.North);
+			Tilt(ref grid, Cardinal.West);
+			Tilt(ref grid, Cardinal.South);
+			Tilt(ref grid, Cardinal.East);
+			//PrintGrid(grid);
+
+			if (foundLoop)
+				continue;
+
+			var bytes = ASCIIEncoding.ASCII.GetBytes(grid.SelectMany(x => x.Select(x => x.OriginalChar)).ToArray());
+			var hash = Convert.ToHexString(MD5.HashData(bytes));
+
+			if (!memo.TryAdd(hash, i))
+			{
+				memo.TryGetValue(hash, out int loopStartIndex);
+				var loopDuration = i - loopStartIndex;
+				i = totalCycles - ((totalCycles - loopStartIndex) % loopDuration);
+				foundLoop = true;
+			}
+		}
+
+		var result = grid
+			.Reverse()
+			.Select((row, index) => new { row, index })
+			.Sum(x => x.row.Count(c => c.Type == TileType.Movable) * (x.index + 1));
+
+		sw.Stop();
+
+		Console.WriteLine($"Result: {result}, Time elapsed: {sw.ElapsedMilliseconds}ms");
+
+		return result;
+	}
+
+	//North -> j-i, 0
+	//West -> i-j, 0
+	//South -> j-i, n
+	//East -> i-j, n
+
+	void Tilt(ref Tile[][] grid, Cardinal side)
     {
-        var sw = Stopwatch.StartNew();
+        int startIndex;
+        int endIndex;
+        int step;
 
-        var grid = File.ReadLines(inputPath)
-            .Select(s => s.ToCharArray())
-            .ToArray();
+        DetermineParameters(side, in grid, out startIndex, out endIndex, out step);
 
-        for (int i = 0; i < 1_000_000_000; i++)
+        if (side is Cardinal.West or Cardinal.East)
         {
-            var tempGrid = grid;
+            for (int i = 0; i < grid.Length; i++)
+            {
+                int nextMovableIndex = startIndex;
+                for (int j = startIndex; (j <= endIndex && step > 0) || (j >= endIndex && step < 0); j += step)
+                {
+					if (grid[i][j].Type is TileType.NonMovable)
+						nextMovableIndex = j + step;
 
-            grid = Tilt(grid, Cardinal.North);
-            grid = Tilt(grid, Cardinal.West);
-            grid = Tilt(grid, Cardinal.South);
-            grid = Tilt(grid, Cardinal.East);
+					if (grid[i][j].Type is TileType.Movable)
+					{
+						if (nextMovableIndex != j && nextMovableIndex >= 0)
+						{
+							grid[i][nextMovableIndex].Type = TileType.Movable;
+							grid[i][j].Type = TileType.Ground;
+						}
 
-            if (Enumerable.SequenceEqual(
-                tempGrid.SelectMany(x => x),
-                grid.SelectMany(x => x)))
-                break;
+						nextMovableIndex += step;
+					}
+				}
+            }
         }
+        else
+        {
+			for (int j = 0; j < grid[0].Length; j++)
+			{
+                int nextMovableIndex = startIndex;
+				for (int i = startIndex; (i <= endIndex && step > 0) || (i >= endIndex && step < 0); i += step)
+				{
+					if (grid[i][j].Type is TileType.NonMovable)
+						nextMovableIndex = i + step;
 
-        var result = grid
-            .Reverse()
-            .Select((row, index) => new { row, index })
-            .Sum(x => x.row.Count(c => c == 'O') * (x.index + 1));
+					if (grid[i][j].Type is TileType.Movable)
+					{
+						if (nextMovableIndex != i && nextMovableIndex >= 0)
+						{
+							grid[nextMovableIndex][j].Type = TileType.Movable;
+							grid[i][j].Type = TileType.Ground;
+						}
 
-        sw.Stop();
-
-        Console.WriteLine($"Result: {result}, Time elapsed: {sw.ElapsedMilliseconds}ms");
-
-        return result;
+						nextMovableIndex += step;
+					}
+				}
+			}
+		}
     }
 
-    char[][] Tilt(char[][] grid, Cardinal side)
+    void DetermineParameters(Cardinal side, in Tile[][] grid, out int startIndex, out int endIndex, out int step)
     {
-        bool descending = false;
-        bool transposed = false;
+		switch (side)
+		{
+			case Cardinal.North:
+				startIndex = 0;
+				endIndex = grid[0].Length - 1;
+				step = 1;
+				break;
+			case Cardinal.West:
+				startIndex = 0;
+				endIndex = grid.Length - 1;
+				step = 1;
+				break;
+			case Cardinal.South:
+				startIndex = grid[0].Length - 1;
+				endIndex = 0;
+				step = -1;
+				break;
+			case Cardinal.East:
+				startIndex = grid.Length - 1;
+				endIndex = 0;
+				step = -1;
+				break;
+			default:
+				throw new ArgumentException($"Invalid side {side}.");
+		}
+	}
 
-        if (side is Cardinal.North or Cardinal.West)
-            descending = true;
+	void PrintGrid(Tile[][] grid)
+	{
+		for(int i = 0; i<grid.Length; i++)
+		{
+			for (int j = 0; j < grid[0].Length; j++)
+				Debug.Write(grid[i][j].OriginalChar);
 
-        if (side is Cardinal.North or Cardinal.South)
-        {
-            transposed = true;
-            grid = Matrix.Transpose(grid);
+			Debug.Write('\n');
+		}
+
+		Debug.Write('\n');
+	}
+
+    struct Tile
+    {
+		public TileType _tileType;
+        public TileType Type { get => _tileType;
+			set
+			{
+				_originalChar = value switch
+				{
+					TileType.Movable => 'O',
+					TileType.NonMovable => '#',
+					TileType.Ground => '.',
+					_ => throw new InvalidOperationException($"Invalid character {value}")
+				};
+
+				_tileType = value;
+			}
+		}
+
+        private char _originalChar;
+        public char OriginalChar { get => _originalChar;
+            set
+            {
+				Type = value switch
+				{
+					'O' => TileType.Movable,
+					'#' => TileType.NonMovable,
+					_ => TileType.Ground,
+				};
+
+				_originalChar = value;
+			}
         }
 
-        grid = grid
-            .Select(row => new string(row).Split('#'))
-            .Select(rowParts => rowParts.Select(rowPart => descending ? rowPart.OrderDescending() : rowPart.Order()))
-            .Select(sortedStrings => sortedStrings.Select(s => s.ToArray()))
-            .Select(sortedRowParts => sortedRowParts.Aggregate((current, next) => [.. current, '#', .. next]))
-            .ToArray();
+        public Tile(char c)
+        {
+            OriginalChar = c;
+		}
+	}
 
-        return transposed ? Matrix.Transpose(grid) : grid;
+    enum TileType
+    {
+        Movable,
+        NonMovable,
+        Ground
     }
 }
