@@ -51,8 +51,13 @@ public class Solution
 
     int SolvePart2(string inputPath)
     {
-        return 145;
+        var input = ReadInput(inputPath)
+            .Select(Parse);
+
+        var
     }
+
+
 
     IEnumerable<string> ReadInput(string inputPath)
     {
@@ -94,5 +99,25 @@ public class Solution
         }
 
         return value;
+    }
+
+    Operation Parse(string input)
+    {
+        return input.Contains('=')
+            ? new Operation(input[..input.IndexOf('=')], OperationType.Add, int.Parse(input[(input.IndexOf('=') + 1)..]))
+            : new Operation(input[..input.IndexOf('-')], OperationType.Remove, int.Parse(input[(input.IndexOf('-') + 1)..]));
+    }
+
+    struct Operation(string label, OperationType type, int? focalLength = null)
+    {
+        public string Label { get; set; } = label;
+        public OperationType Type { get; set; } = type;
+        public int? FocalLength { get; set; } = focalLength;
+    }
+
+    enum OperationType
+    {
+        Remove,
+        Add
     }
 }
