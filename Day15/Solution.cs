@@ -51,10 +51,54 @@ public class Solution
 
     int SolvePart2(string inputPath)
     {
-        var input = ReadInput(inputPath)
+        var sw = Stopwatch.StartNew();
+
+        var operations = ReadInput(inputPath)
             .Select(Parse);
 
-        var
+        var boxes = Enumerable.Range(0, 256)
+                      .Select(_ => new List<Lens>(9))
+                      .ToArray();
+
+        foreach (var operation in operations)
+        {
+            var hash = HashInput(operation.Label);
+
+            var existingLens = boxes[hash].SingleOrDefault(x => x.Label == operation.Label);
+
+            switch (operation.Type)
+            {
+                case OperationType.Add:
+                    {
+                        if (existingLens is not null)
+                            existingLens.FocalLength = operation.FocalLength!.Value;
+                        else
+                            boxes[hash].Add(new Lens(operation.Label, operation.FocalLength!.Value));
+
+                        break;
+                    }
+                case OperationType.Remove:
+                    {
+                        if (existingLens is not null)
+                            boxes[hash].Remove(existingLens);
+
+                        break;
+                    }
+            }
+        }
+
+        var result = boxes
+            .Select((box, boxIndex) =>
+            {
+                return box.Select((lens, lensIndex) => (boxIndex + 1) * (lensIndex + 1) * lens.FocalLength).Sum();
+            })
+            .Sum();
+
+        sw.Stop();
+
+        Console.WriteLine($"Result: {result}, Time elapsed: {sw.ElapsedMilliseconds}ms");
+
+        return result;
     }
 
 
@@ -105,7 +149,7 @@ public class Solution
     {
         return input.Contains('=')
             ? new Operation(input[..input.IndexOf('=')], OperationType.Add, int.Parse(input[(input.IndexOf('=') + 1)..]))
-            : new Operation(input[..input.IndexOf('-')], OperationType.Remove, int.Parse(input[(input.IndexOf('-') + 1)..]));
+            : new Operation(input[..input.IndexOf('-')], OperationType.Remove);
     }
 
     struct Operation(string label, OperationType type, int? focalLength = null)
@@ -113,6 +157,12 @@ public class Solution
         public string Label { get; set; } = label;
         public OperationType Type { get; set; } = type;
         public int? FocalLength { get; set; } = focalLength;
+    }
+
+    class Lens(string label, int focalLength)
+    {
+        public string Label { get; set; } = label;
+        public int FocalLength { get; set; } = focalLength;
     }
 
     enum OperationType
