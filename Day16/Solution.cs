@@ -1,12 +1,11 @@
 ﻿using NUnit.Framework;
 using System.Diagnostics;
+using Utility;
 
 namespace Day16;
 
 public class Solution
 {
-    static Tile[,] Grid = new Tile[1,1];
-
     static int gridDim;
 
     [Test]
@@ -20,21 +19,36 @@ public class Solution
     public void Part1_Input()
     {
         SolvePart1(@"Inputs/input.txt");
-    }
+	}
 
-    public int SolvePart1(string inputPath)
+	[Test]
+	public async Task Part2_Example()
+	{
+		var result = await SolvePart2(@"Inputs/example.txt");
+		Assert.That(result, Is.EqualTo(51));
+	}
+
+	[Test]
+	public async Task Part2_Input()
+	{
+		await SolvePart2(@"Inputs/input.txt");
+	}
+
+	public int SolvePart1(string inputPath)
     {
         var sw = Stopwatch.StartNew();
 
-        Grid = ReadInput(inputPath);
+        var map = ReadInput(inputPath);
 
-        gridDim = Grid.GetLength(1);
+        gridDim = map.GetLength(1);
 
-        BeamQueue.RunQueue();
+        var grid = new Grid(map);
+
+        grid.BeamQueue.RunQueue(grid, grid.Map[0,0], Direction.Right);
 
 		var result = 0;
 
-		foreach (var tile in Grid)
+		foreach (var tile in grid.Map)
 		{
 			if (tile.Energized)
 				result++;
@@ -47,6 +61,56 @@ public class Solution
 
 			//Console.Write('\n');
    //     }    
+
+		sw.Stop();
+
+        Console.WriteLine($"Result: {result}, Time elapsed: {sw.ElapsedMilliseconds}ms");
+
+        return result;
+    }
+
+    public async Task<int> SolvePart2(string inputPath)
+    {
+        var sw = Stopwatch.StartNew();
+
+        sw.Start();
+
+		var map = ReadInput(inputPath);
+		gridDim = map.GetLength(1);
+        
+        var tasks = new List<Task<int>>();
+
+        for (int i = 0; i < gridDim; i++)
+        {
+            var j = i;
+
+            tasks.Add(Task.Run(() =>
+            {
+                var grid = new Grid(map.Copy());
+                grid.BeamQueue.RunQueue(grid, grid.Map[j, 0], Direction.Right);
+                return CountEnergizedTiles(grid.Map);
+            }));
+            tasks.Add(Task.Run(() =>
+            {
+                var grid = new Grid(map.Copy());
+                grid.BeamQueue.RunQueue(grid, grid.Map[gridDim - 1, j], Direction.Up);
+                return CountEnergizedTiles(grid.Map);
+            }));
+            tasks.Add(Task.Run(() =>
+            {
+                var grid = new Grid(map.Copy());
+                grid.BeamQueue.RunQueue(grid, grid.Map[j, gridDim - 1], Direction.Left);
+                return CountEnergizedTiles(grid.Map);
+            }));
+            tasks.Add(Task.Run(() =>
+            {
+                var grid = new Grid(map.Copy());
+                grid.BeamQueue.RunQueue(grid, grid.Map[0, j], Direction.Down);
+                return CountEnergizedTiles(grid.Map);
+            }));
+        }
+
+        var result = (await Task.WhenAll(tasks)).Max();
 
 		sw.Stop();
 
@@ -83,17 +147,38 @@ public class Solution
         return grid;
     }
 
+    int CountEnergizedTiles(Tile[,] map)
+    {
+        var result = 0;
+
+        for (int i = 0; i < gridDim ;i++)
+        {
+            for(int j = 0;j < gridDim ;j++)
+            {
+				if (map[i,j].Energized)
+					result++;
+			}
+        }
+
+        Debug.WriteLine(result);
+        return result;
+    }
     enum TileType
     {
         Empty, SplitterHorizontal, SplitterVertical, MirrorBack, MirrorForward // . -  | \ /
     }
 
-    class Tile
+    struct Tile
     {
         public bool Energized { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
         public TileType TileType { get; set; }
+
+        //public Tile Copy()
+        //{
+        //    return new Tile(X, Y, TileType);
+        //}
 
         public Tile(int x, int y, TileType type)
         {
@@ -109,27 +194,35 @@ public class Solution
 
             return true;
         }
-    }
+	}
 
     enum Direction { Up, Down, Left, Right }
 
-    static HashSet<(Tile, Direction)> crossroads = [];
+    class Grid(Tile[,] map)
+    {
+		public HashSet<(Tile, Direction)> Crossroads = [];
+        public BeamQueue BeamQueue = new();
+
+        public Tile[,] Map = map;
+	}
 
     class Beam
     {
-        public Beam(Tile origin, Direction direction)
-        {
-            StartTile = origin;
-            Direction = direction;
-
-            _currentTile = StartTile;
-        }
-
+        Grid grid { get; set; }
         public Tile StartTile { get; set; }
         Tile _currentTile;
         public Direction Direction { get; set; }
 
-        public bool HandleCurrentTile(Tile tile)
+		public Beam(Grid grid, Tile origin, Direction direction)
+		{
+            this.grid = grid;
+			StartTile = origin;
+			Direction = direction;
+
+			_currentTile = StartTile;
+		}
+
+		public bool HandleCurrentTile(Tile tile)
         {
             switch (tile.TileType)
             {
@@ -138,14 +231,14 @@ public class Solution
                 case TileType.SplitterVertical:
 				case TileType.SplitterHorizontal:
 					{
-						crossroads.Add((_currentTile, Direction));
+						grid.Crossroads.Add((_currentTile, Direction));
 						var died = HandleSplitter(tile);
                         return died;
                     }
                 case TileType.MirrorBack:
                 case TileType.MirrorForward:
                     {
-						crossroads.Add((_currentTile, Direction));
+						grid.Crossroads.Add((_currentTile, Direction));
 						HandleMirror(tile);
                         return false;
                     }
@@ -161,10 +254,10 @@ public class Solution
                 case TileType.SplitterHorizontal when Direction is Direction.Up or Direction.Down:
                     {
                         if (Tile.IsValid(tile.X, tile.Y - 1))
-                            BeamQueue.Enqueue(new Beam(Grid[tile.X, tile.Y-1], Direction.Left));
+                            grid.BeamQueue.Enqueue(new Beam(grid, grid.Map[tile.X, tile.Y-1], Direction.Left));
 
 						if (Tile.IsValid(tile.X, tile.Y + 1))
-							BeamQueue.Enqueue(new Beam(Grid[tile.X, tile.Y + 1], Direction.Right));
+							grid.BeamQueue.Enqueue(new Beam(grid, grid.Map[tile.X, tile.Y + 1], Direction.Right));
 
                         return true;
 					}
@@ -172,10 +265,10 @@ public class Solution
                     {
 
 						if (Tile.IsValid(tile.X - 1, tile.Y))
-							BeamQueue.Enqueue(new Beam(Grid[tile.X-1, tile.Y], Direction.Up));
+							grid.BeamQueue.Enqueue(new Beam(grid, grid.Map[tile.X-1, tile.Y], Direction.Up));
 
 						if (Tile.IsValid(tile.X + 1, tile.Y))
-							BeamQueue.Enqueue(new Beam(Grid[tile.X + 1, tile.Y], Direction.Down));
+							grid.BeamQueue.Enqueue(new Beam(grid, grid.Map[tile.X + 1, tile.Y], Direction.Down));
 
                         return true;
                     }
@@ -227,12 +320,12 @@ public class Solution
         {
             while (true)
 			{
-				if (crossroads.Contains((_currentTile, Direction)))
+				if (grid.Crossroads.Contains((_currentTile, Direction)))
 				{
                     return;
 				}
 
-				Grid[_currentTile.X, _currentTile.Y].Energized = true;
+				grid.Map[_currentTile.X, _currentTile.Y].Energized = true;
 
                 if (HandleCurrentTile(_currentTile))
                     return;
@@ -240,16 +333,16 @@ public class Solution
 				switch (Direction)
 				{
 					case Direction.Up when _currentTile.X - 1 >= 0:
-						_currentTile = Grid[_currentTile.X - 1, _currentTile.Y];
+						_currentTile = grid.Map[_currentTile.X - 1, _currentTile.Y];
 						break;
 					case Direction.Down when _currentTile.X + 1 < gridDim:
-						_currentTile = Grid[_currentTile.X + 1, _currentTile.Y];
+						_currentTile = grid.Map[_currentTile.X + 1, _currentTile.Y];
 						break;
 					case Direction.Left when _currentTile.Y - 1 >= 0:
-						_currentTile = Grid[_currentTile.X, _currentTile.Y - 1];
+						_currentTile = grid.Map[_currentTile.X, _currentTile.Y - 1];
 						break;
 					case Direction.Right when _currentTile.Y + 1 < gridDim:
-						_currentTile = Grid[_currentTile.X, _currentTile.Y + 1];
+						_currentTile = grid.Map[_currentTile.X, _currentTile.Y + 1];
 						break;
 					default:
                         return;
@@ -258,18 +351,18 @@ public class Solution
         }
 	}
 
-    static class BeamQueue
+    class BeamQueue
     {
-        static Queue<Beam> beams = new Queue<Beam>();
+        Queue<Beam> beams = new();
 
-        public static void Enqueue(Beam beam)
+        public void Enqueue(Beam beam)
         {
             beams.Enqueue(beam);
         }
 
-        public static void RunQueue()
+        public void RunQueue(Grid grid, Tile startingPosition, Direction direction)
         {
-            Enqueue(new Beam(Grid[0, 0], Direction.Right));
+            Enqueue(new Beam(grid, startingPosition, direction));
 
             while (beams.TryDequeue(out Beam beam))
             {
